@@ -1,9 +1,9 @@
-# Project Name
+# Mnemonik
 
-Description
+Data storage utilities for use with Synaptik
 
 ## Installation
 
 ```sh
-npm install @sektek/project-name
+npm install @sektek/mnemonik
 ```

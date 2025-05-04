@@ -1,11 +1,11 @@
 {
-  "name": "@sektek/project-name",
+  "name": "@sektek/mnemonik",
   "version": "1.0.0",
-  "description": "Description",
+  "description": "Data storage utilities for use with Synaptik",
   "author": "Edward Kelly <eddie@sektek.net>",
   "repository": {
     "type": "git",
-    "url": "git@github.com:sektek/project-name.git"
+    "url": "git@github.com:sektek/mnemonik.git"
   },
   "license": "UNLICENSED",
   "private": true,
