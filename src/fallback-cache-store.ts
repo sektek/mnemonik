@@ -28,8 +28,8 @@ export class FallbackCacheStore<T, K = string> extends CacheStore<T, K> {
    *
    * @param key - The key to retrieve the value for.
    *
-   * @returns - A promise that resolves to the value associated with the key,
-   *            or undefined if the key does not exist in the cache or store.
+   * @returns A promise that resolves to the value associated with the key,
+   *          or undefined if the key does not exist in the cache or store.
    *
    * @fires CacheEvents#'cache:hit' - Emitted when a value is found in the cache.
    * @fires CacheEvents#'cache:miss' - Emitted when a value is not found in the cache.
