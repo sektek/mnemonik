@@ -1,10 +1,57 @@
 import { expect, use } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 
 use(sinonChai);
+use(chaiAsPromised);
 
 import { FallbackCacheStore } from './fallback-cache-store.js';
+
+class AsyncMapStore<T, K = string> implements Store<T, K> {
+  readonly entries = new Map<K, T>();
+  failOnWrite = false;
+
+  async #delay(): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 5));
+    if (this.failOnWrite) {
+      throw new Error('cache write failed');
+    }
+  }
+
+  async get(key: K): Promise<T | undefined> {
+    await new Promise(resolve => setTimeout(resolve, 5));
+    return this.entries.get(key);
+  }
+
+  async has(key: K): Promise<boolean> {
+    await new Promise(resolve => setTimeout(resolve, 5));
+    return this.entries.has(key);
+  }
+
+  async set(key: K, value: T): Promise<void> {
+    await this.#delay();
+    this.entries.set(key, value);
+  }
+
+  async delete(key: K): Promise<boolean> {
+    await this.#delay();
+    return this.entries.delete(key);
+  }
+
+  async clear(): Promise<void> {
+    await this.#delay();
+    this.entries.clear();
+  }
+
+  keys(): Iterable<K> {
+    return this.entries.keys();
+  }
+
+  values(): Iterable<T> {
+    return this.entries.values();
+  }
+}
 
 describe('FallbackCacheStore', function () {
   let cacheStore: FallbackCacheStore<string, string>;
@@ -110,6 +157,50 @@ describe('FallbackCacheStore', function () {
       await defaultCacheStore.delete('key1');
 
       expect(await defaultCacheStore.get('key1')).to.be.undefined;
+    });
+  });
+
+  describe('with an asynchronous cache', function () {
+    let asyncCache: AsyncMapStore<string, string>;
+    let asyncCacheStore: FallbackCacheStore<string, string>;
+
+    beforeEach(function () {
+      asyncCache = new AsyncMapStore<string, string>();
+      asyncCacheStore = new FallbackCacheStore<string, string>({
+        store,
+        cache: asyncCache,
+      });
+    });
+
+    it('should emit cache:hit with the value, not a promise', async function () {
+      asyncCache.entries.set('key1', 'value1');
+      const listener = sinon.fake();
+      asyncCacheStore.on('cache:hit', listener);
+
+      await asyncCacheStore.get('key1');
+
+      expect(listener).to.have.been.calledOnceWith('key1', 'value1');
+    });
+
+    it('should emit cache:set only after the cache contains the key', async function () {
+      store.set('key1', 'value1');
+      const present: boolean[] = [];
+      asyncCacheStore.on('cache:set', key =>
+        present.push(asyncCache.entries.has(key)),
+      );
+
+      await asyncCacheStore.get('key1');
+
+      expect(present).to.deep.equal([true]);
+    });
+
+    it('should reject get when the cache write fails', async function () {
+      store.set('key1', 'value1');
+      asyncCache.failOnWrite = true;
+
+      await expect(asyncCacheStore.get('key1')).to.be.rejectedWith(
+        'cache write failed',
+      );
     });
   });
 });

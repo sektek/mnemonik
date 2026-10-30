@@ -1,10 +1,59 @@
 import { expect, use } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 
 use(sinonChai);
+use(chaiAsPromised);
+
+import { Store } from '@sektek/utility-belt';
 
 import { CacheStore } from './cache-store.js';
+
+class AsyncMapStore<T, K = string> implements Store<T, K> {
+  readonly entries = new Map<K, T>();
+  failOnWrite = false;
+
+  async #delay(): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 5));
+    if (this.failOnWrite) {
+      throw new Error('cache write failed');
+    }
+  }
+
+  async get(key: K): Promise<T | undefined> {
+    await new Promise(resolve => setTimeout(resolve, 5));
+    return this.entries.get(key);
+  }
+
+  async has(key: K): Promise<boolean> {
+    await new Promise(resolve => setTimeout(resolve, 5));
+    return this.entries.has(key);
+  }
+
+  async set(key: K, value: T): Promise<void> {
+    await this.#delay();
+    this.entries.set(key, value);
+  }
+
+  async delete(key: K): Promise<boolean> {
+    await this.#delay();
+    return this.entries.delete(key);
+  }
+
+  async clear(): Promise<void> {
+    await this.#delay();
+    this.entries.clear();
+  }
+
+  keys(): Iterable<K> {
+    return this.entries.keys();
+  }
+
+  values(): Iterable<T> {
+    return this.entries.values();
+  }
+}
 
 describe('ReadThroughCacheStore', function () {
   let cache: CacheStore<string, string>;
@@ -135,5 +184,70 @@ describe('ReadThroughCacheStore', function () {
     expect(spyClearCache).to.have.been.calledOnce;
     expect(dataStore.size).to.equal(0);
     expect(cacheStore.size).to.equal(0);
+  });
+
+  describe('with an asynchronous cache', function () {
+    let asyncCache: AsyncMapStore<string, string>;
+    let asyncCacheStore: CacheStore<string, string>;
+
+    beforeEach(function () {
+      asyncCache = new AsyncMapStore<string, string>();
+      asyncCacheStore = new CacheStore<string, string>({
+        store: dataStore,
+        cache: asyncCache,
+      });
+    });
+
+    it('should emit cache:hit with the value, not a promise', async function () {
+      asyncCache.entries.set('key1', 'value1');
+      const listener = sinon.fake();
+      asyncCacheStore.on('cache:hit', listener);
+
+      await asyncCacheStore.get('key1');
+
+      expect(listener).to.have.been.calledOnceWith('key1', 'value1');
+    });
+
+    it('should emit cache:set only after the cache contains the key', async function () {
+      dataStore.set('key1', 'value1');
+      const present: boolean[] = [];
+      asyncCacheStore.on('cache:set', key =>
+        present.push(asyncCache.entries.has(key)),
+      );
+
+      await asyncCacheStore.get('key1');
+      await asyncCacheStore.set('key2', 'value2');
+
+      expect(present).to.deep.equal([true, true]);
+    });
+
+    it('should emit cache:deleted only after the cache no longer contains the key', async function () {
+      await asyncCacheStore.set('key1', 'value1');
+      const present: boolean[] = [];
+      asyncCacheStore.on('cache:deleted', key =>
+        present.push(asyncCache.entries.has(key)),
+      );
+
+      await asyncCacheStore.delete('key1');
+
+      expect(present).to.deep.equal([false]);
+    });
+
+    it('should reject get when the cache write fails', async function () {
+      dataStore.set('key1', 'value1');
+      asyncCache.failOnWrite = true;
+
+      await expect(asyncCacheStore.get('key1')).to.be.rejectedWith(
+        'cache write failed',
+      );
+    });
+
+    it('should reject set when the cache write fails', async function () {
+      asyncCache.failOnWrite = true;
+
+      await expect(asyncCacheStore.set('key1', 'value1')).to.be.rejectedWith(
+        'cache write failed',
+      );
+    });
   });
 });
