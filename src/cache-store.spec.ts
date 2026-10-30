@@ -1,12 +1,11 @@
 import { expect, use } from 'chai';
+import { Store } from '@sektek/utility-belt';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 
 use(sinonChai);
 use(chaiAsPromised);
-
-import { Store } from '@sektek/utility-belt';
 
 import { CacheStore } from './cache-store.js';
 
