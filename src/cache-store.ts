@@ -33,8 +33,8 @@ export class CacheStore<T, K = string>
   extends EventEmitter
   implements EventEmittingService<CacheEvents<T, K>>
 {
-  #store: Store<T, K>;
-  #cache: Store<T, K>;
+  protected readonly store: Store<T, K>;
+  protected readonly cache: Store<T, K>;
 
   /**
    * Creates an instance of CacheStore.
@@ -43,8 +43,8 @@ export class CacheStore<T, K = string>
    */
   constructor(opts: CacheStoreOptions<T, K>) {
     super();
-    this.#store = opts.store;
-    this.#cache = opts.cache || new Map<K, T>();
+    this.store = opts.store;
+    this.cache = opts.cache || new Map<K, T>();
   }
 
   /**
@@ -59,17 +59,17 @@ export class CacheStore<T, K = string>
    *          or undefined if the key does not exist in the cache or store.
    */
   async get(key: K): Promise<T | undefined> {
-    if (await this.#cache.has(key)) {
-      const value = this.#cache.get(key);
+    if (await this.cache.has(key)) {
+      const value = this.cache.get(key);
       this.emit('cache:hit', key, value);
       return value;
     }
 
     this.emit('cache:miss', key);
 
-    const value = await this.#store.get(key);
+    const value = await this.store.get(key);
     if (value !== undefined) {
-      this.#cache.set(key, value);
+      this.cache.set(key, value);
       this.emit('cache:set', key, value);
     }
     return value;
@@ -84,8 +84,8 @@ export class CacheStore<T, K = string>
    * @returns A promise that resolves when the value has been set.
    */
   async set(key: K, value: T): Promise<void> {
-    await this.#store.set(key, value);
-    this.#cache.set(key, value);
+    await this.store.set(key, value);
+    this.cache.set(key, value);
     this.emit('cache:set', key, value);
   }
 
@@ -97,10 +97,10 @@ export class CacheStore<T, K = string>
    *          or false if it did not exist.
    */
   async delete(key: K): Promise<boolean> {
-    const deleted = await this.#store.delete(key);
+    const deleted = await this.store.delete(key);
 
     if (deleted) {
-      this.#cache.delete(key);
+      this.cache.delete(key);
       this.emit('cache:deleted', key);
     }
 
@@ -108,15 +108,15 @@ export class CacheStore<T, K = string>
   }
 
   async has(key: K): Promise<boolean> {
-    if (await this.#cache.has(key)) {
+    if (await this.cache.has(key)) {
       return true;
     }
 
-    return this.#store.has(key);
+    return this.store.has(key);
   }
 
   async clear(): Promise<void> {
-    await this.#store.clear();
-    await this.#cache.clear();
+    await this.store.clear();
+    await this.cache.clear();
   }
 }
