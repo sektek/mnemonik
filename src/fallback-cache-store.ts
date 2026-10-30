@@ -1,4 +1,4 @@
-import { CacheStore, CacheStoreOptions } from './cache-store.js';
+import { CacheStore } from './cache-store.js';
 
 /**
  * Options for the FallbackCacheStore constructor.
@@ -8,10 +8,6 @@ import { CacheStore, CacheStoreOptions } from './cache-store.js';
  *               Defaults to string.
  */
 export class FallbackCacheStore<T, K = string> extends CacheStore<T, K> {
-  constructor(opts: CacheStoreOptions<T, K>) {
-    super(opts);
-  }
-
   /**
    * Retrieves a value from the cache or store.
    * If the value is found in the store, it is cached and returned.
