@@ -20,6 +20,8 @@ export class FallbackCacheStore<T, K = string> extends CacheStore<T, K> {
    * @returns A promise that resolves to the value associated with the key,
    *          or undefined if the key does not exist in the cache or store.
    *
+   * @throws {Error} If writing to the cache fails, the returned promise rejects.
+   *
    * @fires CacheEvents#'cache:hit' - Emitted when a value is found in the cache.
    * @fires CacheEvents#'cache:miss' - Emitted when a value is not found in the cache.
    * @fires CacheEvents#'cache:set' - Emitted when a value is set in the cache.
@@ -35,7 +37,7 @@ export class FallbackCacheStore<T, K = string> extends CacheStore<T, K> {
         this.emit('cache:miss', key);
       }
     } else {
-      this.cache.set(key, value);
+      await this.cache.set(key, value);
       this.emit('cache:set', key, value);
     }
 

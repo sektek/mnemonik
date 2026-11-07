@@ -57,10 +57,12 @@ export class CacheStore<T, K = string>
    *
    * @returns A promise that resolves to the value associated with the key,
    *          or undefined if the key does not exist in the cache or store.
+   *
+   * @throws {Error} If writing to the cache fails, the returned promise rejects.
    */
   async get(key: K): Promise<T | undefined> {
     if (await this.cache.has(key)) {
-      const value = this.cache.get(key);
+      const value = await this.cache.get(key);
       this.emit('cache:hit', key, value);
       return value;
     }
@@ -69,7 +71,7 @@ export class CacheStore<T, K = string>
 
     const value = await this.store.get(key);
     if (value !== undefined) {
-      this.cache.set(key, value);
+      await this.cache.set(key, value);
       this.emit('cache:set', key, value);
     }
     return value;
@@ -85,7 +87,7 @@ export class CacheStore<T, K = string>
    */
   async set(key: K, value: T): Promise<void> {
     await this.store.set(key, value);
-    this.cache.set(key, value);
+    await this.cache.set(key, value);
     this.emit('cache:set', key, value);
   }
 
@@ -100,7 +102,7 @@ export class CacheStore<T, K = string>
     const deleted = await this.store.delete(key);
 
     if (deleted) {
-      this.cache.delete(key);
+      await this.cache.delete(key);
       this.emit('cache:deleted', key);
     }
 
