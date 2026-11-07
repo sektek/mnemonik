@@ -1,6 +1,4 @@
-import { Store } from '@sektek/utility-belt';
-
-import { CacheStore, CacheStoreOptions } from './cache-store.js';
+import { CacheStore } from './cache-store.js';
 
 /**
  * Options for the FallbackCacheStore constructor.
@@ -10,15 +8,6 @@ import { CacheStore, CacheStoreOptions } from './cache-store.js';
  *               Defaults to string.
  */
 export class FallbackCacheStore<T, K = string> extends CacheStore<T, K> {
-  #store: Store<T, K>;
-  #cache: Store<T, K>;
-
-  constructor(opts: CacheStoreOptions<T, K>) {
-    super(opts);
-    this.#store = opts.store;
-    this.#cache = opts.cache || new Map<K, T>();
-  }
-
   /**
    * Retrieves a value from the cache or store.
    * If the value is found in the store, it is cached and returned.
@@ -36,17 +25,17 @@ export class FallbackCacheStore<T, K = string> extends CacheStore<T, K> {
    * @fires CacheEvents#'cache:set' - Emitted when a value is set in the cache.
    */
   async get(key: K): Promise<T | undefined> {
-    let value = await this.#store.get(key);
+    let value = await this.store.get(key);
 
     if (value === undefined) {
-      value = await this.#cache.get(key);
+      value = await this.cache.get(key);
       if (value !== undefined) {
         this.emit('cache:hit', key, value);
       } else {
         this.emit('cache:miss', key);
       }
     } else {
-      this.#cache.set(key, value);
+      this.cache.set(key, value);
       this.emit('cache:set', key, value);
     }
 

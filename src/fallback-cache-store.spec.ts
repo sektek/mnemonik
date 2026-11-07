@@ -84,4 +84,32 @@ describe('FallbackCacheStore', function () {
     expect(listener).to.have.been.calledOnceWith('key1', 'value1');
     expect(cache.get('key1')).to.equal('value1');
   });
+
+  describe('with the default cache', function () {
+    let defaultCacheStore: FallbackCacheStore<string, string>;
+
+    beforeEach(function () {
+      defaultCacheStore = new FallbackCacheStore({ store });
+    });
+
+    it('should remove values cached by get when cleared', async function () {
+      store.set('key1', 'value1');
+      await defaultCacheStore.get('key1');
+      store.delete('key1');
+      expect(await defaultCacheStore.get('key1')).to.equal('value1');
+
+      await defaultCacheStore.clear();
+
+      expect(await defaultCacheStore.get('key1')).to.be.undefined;
+    });
+
+    it('should remove values cached by get when deleted', async function () {
+      store.set('key1', 'value1');
+      await defaultCacheStore.get('key1');
+
+      await defaultCacheStore.delete('key1');
+
+      expect(await defaultCacheStore.get('key1')).to.be.undefined;
+    });
+  });
 });

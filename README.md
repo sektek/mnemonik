@@ -70,8 +70,6 @@ const fallback = await store.get('app'); // store miss: the cached copy is retur
 
 It takes the same options as `CacheStore` and extends it, overriding only `get`. `set`, `delete`, `has`, and `clear` behave exactly as described for `CacheStore`.
 
-> **Pass `cache` explicitly.** If `cache` is omitted, `FallbackCacheStore` creates a separate default `Map` for its `get` than the one used by the inherited `set`, `delete`, `has`, and `clear`. Entries cached by `get` are then not removed by `clear()`. Supplying your own `cache` avoids this.
-
 ## Events
 
 Both classes are `EventEmitter`s and emit these events:
